@@ -49,6 +49,7 @@
     .weekline{font-size:17px;line-height:1.45;margin-top:5px}
     .quote{border-left:3px solid var(--i);padding-left:12px;color:var(--m);font-style:italic}
     .backup{display:flex;gap:8px;flex-wrap:wrap}
+    .daymark{width:28px;flex:none;text-align:center;color:var(--m)}
   </style>
 </head>
 <body>
@@ -73,8 +74,10 @@
 
   const A = document.getElementById('app');
   const W = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const WM = ['M','T','W','Th','F','S','Su'];
   const FOCUSES = ['—','Platform','Job','Belonging','Body','Rest','Housekeeping'];
   let mode = 'log';
+  let viewDate = tk();
   let cfg = norm(load('days:config', D));
   let days = load('days:days', {});
   let weeks = load('days:weeks', {});
@@ -90,16 +93,20 @@
   function add(d,n){let x=new Date(d);x.setDate(x.getDate()+n);return x}
   function tk(){return fk(new Date)}
   function wk(d=new Date){return fk(mon(d))}
+  function dow(k){return (pk(k).getDay()+6)%7}
+  function dayMark(k){return WM[dow(k)]}
   function span(k){return pk(k).toLocaleDateString(undefined,{month:'short',day:'numeric'})+' – '+add(pk(k),6).toLocaleDateString(undefined,{month:'short',day:'numeric'})}
   function ensureDay(k){days[k]=days[k]||{logged:{},win:''};days[k].logged=days[k].logged||{};days[k].win=days[k].win||'';return days[k]}
   function ensureWeek(k, seedPlan){let old=weeks[k]||{};weeks[k]={...old,plan:plan(old.plan||seedPlan||cfg.belongingPlan),gear:!!old.gear,checkedInAt:old.checkedInAt||null,worked:old.worked||old.reviewWorked||'',didnt:old.didnt||old.reviewDidnt||'',remember:old.remember||old.reviewRemember||'',sentence:old.sentence||old.nextSentence||'',focus:old.focus||'—'};return weeks[k]}
-  function cur(){let t=tk(),w=wk();return{t,w,next:fk(add(pk(w),7)),d:ensureDay(t),we:ensureWeek(w)}}
+  function cur(k=tk()){let t=k||tk(),w=wk(pk(t));return{t,today:tk(),w,next:fk(add(pk(w),7)),d:ensureDay(t),we:ensureWeek(w)}}
   function moves(){let m=[...cfg.moves];if(cfg.objective&&cfg.objective.trim())m.push({id:'objective',label:cfg.objective,goal:cfg.objectiveGoal||'Rotating objective',time:'rotating',accent:cfg.objectiveAccent||'#5E7A5E',trigger:cfg.objectiveTrigger||''});return m}
   function div(s){return `<div class="div"><b>${s}</b><i></i></div>`}
   function head(c){return `<div class="top"><div><div class="mark">Days</div><div class="sub">where can we live but days</div></div><div class="date mono">${pk(c.t).toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</div></div><div class="tabs">${['log','review','design','track'].map(x=>`<button data-mode="${x}" class="tab ${mode==x?'on':''}">${x[0].toUpperCase()+x.slice(1)}</button>`).join('')}</div>`}
-  function render(){let c=cur();A.innerHTML=head(c)+(mode=='design'?design():mode=='track'?track(c):mode=='review'?review(c):log(c));save()}
+  function render(){let c=mode=='log'?cur(viewDate):cur();A.innerHTML=head(c)+(mode=='design'?design():mode=='track'?track(c):mode=='review'?review(c):log(c));save()}
 
-  function log(c){let ms=moves();return `${c.we.sentence||c.we.focus&&c.we.focus!='—'?weekCompass(c.we):''}`+ms.map(m=>{let L=c.d.logged||{},on=L[m.id];return `<div class="move" style="border-color:${on?m.accent+'55':'var(--l)'};background:${on?m.accent+'12':'transparent'}"><button class="dot ${on?'done':''}" data-act="mv:${m.id}" style="border-color:${m.accent};color:${m.accent}">${on?'✓':''}</button><div style="flex:1"><div><span class="ey" style="color:${m.accent}">${e(m.time)}</span> <span class="label">${e(m.label)}</span>${on?` <span class="small">· ${e(on.time)}</span>`:''}</div>${m.trigger?`<div class="trig">${e(m.trigger)}</div>`:''}${on?`<input class="note" data-note="${m.id}" value="${e(on.note||'')}" placeholder="what it was, if you want to remember…">`:''}</div></div>`}).join('')+`<div class="field"><div class="fl">Today, in a line</div><input class="line" data-win value="${e(c.d.win||'')}" placeholder="one true thing about today — even a small one"></div>${div('this week')}<div class="field"><div class="fl">Belonging schedule</div><div class="hint">each item can be checked off and tagged</div>${c.we.plan.map((p,i)=>row(p,i,'week')).join('')}<button class="pill" data-act="add:week">+ add to this week</button> <button class="pill" data-act="copy:week">copy Design template</button></div><div class="field"><div class="fl">Publication — witnessed by ${e(cfg.publication.witness)}</div><button class="pill ${c.we.gear?'on':''}" data-act="gear:week">${e(c.we.gear?cfg.publication.label+' — done this week':cfg.publication.label)}</button></div>${div('backup')}<div class="backup"><button class="pill" data-act="export">Export backup</button><label class="pill">Import backup<input id="imp" type="file" accept="application/json,.json" style="display:none"></label></div>`}
+  function dateNav(c){let isToday=c.t==c.today;return `<div class="card"><div class="row"><button class="pill" data-act="date:-1">←</button><input class="inp mono" type="date" data-viewdate value="${e(c.t)}"><button class="pill" data-act="date:1">→</button><button class="pill ${isToday?'on':''}" data-act="date:today">today</button></div><div class="small mono">${e(dayMark(c.t))}${isToday?' · today':' · editing saved day'}</div></div>`}
+
+  function log(c){let ms=moves();return dateNav(c)+`${c.we.sentence||c.we.focus&&c.we.focus!='—'?weekCompass(c.we):''}`+ms.map(m=>{let L=c.d.logged||{},on=L[m.id];return `<div class="move" style="border-color:${on?m.accent+'55':'var(--l)'};background:${on?m.accent+'12':'transparent'}"><button class="dot ${on?'done':''}" data-act="mv:${m.id}" style="border-color:${m.accent};color:${m.accent}">${on?'✓':''}</button><div style="flex:1"><div><span class="ey" style="color:${m.accent}">${e(m.time)}</span> <span class="label">${e(m.label)}</span>${on?` <span class="small">· ${e(on.time)}</span>`:''}</div>${m.trigger?`<div class="trig">${e(m.trigger)}</div>`:''}${on?`<input class="note" data-note="${m.id}" value="${e(on.note||'')}" placeholder="what it was, if you want to remember…">`:''}</div></div>`}).join('')+`<div class="field"><div class="fl">${c.t==c.today?'Today':'This day'}, in a line</div><input class="line" data-win value="${e(c.d.win||'')}" placeholder="one true thing about this day — even a small one"></div>${div('this week')}<div class="field"><div class="fl">Belonging schedule</div><div class="hint">each item can be checked off and tagged</div>${c.we.plan.map((p,i)=>row(p,i,'week')).join('')}<button class="pill" data-act="add:week">+ add to this week</button> <button class="pill" data-act="copy:week">copy Design template</button></div><div class="field"><div class="fl">Publication — witnessed by ${e(cfg.publication.witness)}</div><button class="pill ${c.we.gear?'on':''}" data-act="gear:week">${e(c.we.gear?cfg.publication.label+' — done this week':cfg.publication.label)}</button></div>${div('backup')}<div class="backup"><button class="pill" data-act="export">Export backup</button><label class="pill">Import backup<input id="imp" type="file" accept="application/json,.json" style="display:none"></label></div>`}
 
   function weekCompass(w){return `<div class="card"><div class="ey">This week</div>${w.focus&&w.focus!='—'?`<div class="hint">emphasis: ${e(w.focus)}</div>`:''}${w.sentence?`<div class="weekline quote">${e(w.sentence)}</div>`:''}</div>`}
 
@@ -109,8 +116,10 @@
 
   function design(){return `<p style="color:var(--m);line-height:1.6;margin-top:0">The standing template. New weeks can copy from here; concrete weeks are edited in Log or Review.</p>${div('daily moves')}${cfg.moves.map((m,i)=>`<div class="card"><div class="ey" style="color:${m.accent}">${e(m.time)}</div><input class="inp" data-edit="m:${i}:label" value="${e(m.label)}"><textarea class="area" data-edit="m:${i}:trigger">${e(m.trigger)}</textarea></div>`).join('')}${div('rotating objective')}<input class="inp" data-edit="c:objective" value="${e(cfg.objective||'')}" placeholder="optional fourth checkbox"><textarea class="area" data-edit="c:objectiveTrigger" placeholder="if-then trigger">${e(cfg.objectiveTrigger||'')}</textarea>${div('belonging template')}${cfg.belongingPlan.map((p,i)=>row(p,i,'template')).join('')}<button class="pill" data-act="add:template">+ add an idea</button>${div('tags + publication')}<textarea class="area" data-edit="c:schema">${e(cfg.schema.join(', '))}</textarea><input class="inp" data-edit="p:label" value="${e(cfg.publication.label)}"><input class="inp" data-edit="p:witness" value="${e(cfg.publication.witness)}"><input class="inp" data-edit="p:stake" value="${e(cfg.publication.stake)}"><p class="small">Saved automatically, on this device.</p>`}
 
-  function sum(k){let m=mon(pk(k)),cells=[0,1,2,3,4,5,6].map(i=>fk(add(m,i))),ms=moves(),counts={};ms.forEach(x=>counts[x.id]=cells.filter(d=>days[d]?.logged?.[x.id]).length);let w=ensureWeek(k),pl=plan(w.plan||[]),wins=cells.map(d=>days[d]?.win).filter(Boolean);return{k,span:span(k),counts,pl,wins,gear:w.gear,worked:w.worked,didnt:w.didnt,remember:w.remember,sentence:w.sentence,focus:w.focus,checkedInAt:w.checkedInAt}}
-  function track(c){let keys=[...new Set([...Object.keys(weeks),...Object.keys(days).map(k=>fk(mon(pk(k))))])].filter(k=>pk(k)<pk(c.w)).sort((a,b)=>pk(b)-pk(a));if(!keys.length)return `<p class="small">No past weeks yet. When this week rolls over, it will settle here.</p>`;return keys.map(k=>{let s=sum(k);return `<div class="card"><b>${e(s.span)}</b><div class="small mono">${k}${s.checkedInAt?' · reviewed':''}</div>${s.sentence||s.focus&&s.focus!='—'?`<p class="quote">${s.focus&&s.focus!='—'?`[${e(s.focus)}] `:''}${e(s.sentence)}</p>`:''}${s.pl.map(p=>`<div class="row"><span class="mono small" style="width:34px">${e(p.day)}</span><span class="${p.done?'strike':''}">${e(p.text||'Untitled')}</span></div>`).join('')}<div>${moves().map(m=>`<span class="chip">${e(m.label)} ×${s.counts[m.id]||0}</span>`).join('')}</div>${s.wins.map(w=>`<p style="font-size:14px">${e(w)}</p>`).join('')}${s.worked?`<p><b>Worked:</b> ${e(s.worked)}</p>`:''}${s.didnt?`<p><b>Didn’t:</b> ${e(s.didnt)}</p>`:''}${s.remember?`<p><b>Remember:</b> ${e(s.remember)}</p>`:''}</div>`}).join('')}
+  function dayEditor(d,ms){let L=days[d.k]?.logged||{};return `<div class="row"><span class="mono small daymark">${e(d.mark)}</span><div style="flex:1">${ms.map(m=>`<button class="chip ${L[m.id]?'on':''}" data-act="histmv:${d.k}:${m.id}">${e(m.label)}</button>`).join('')}</div></div>`}
+  function lineEditor(d){return `<div class="row"><span class="mono small daymark">${e(d.mark)}</span><input class="line" data-win-day="${d.k}" value="${e(days[d.k]?.win||'')}" placeholder="${e(d.label)}"></div>`}
+  function sum(k){let m=mon(pk(k)),cells=[0,1,2,3,4,5,6].map(i=>fk(add(m,i))),ms=moves(),counts={};ms.forEach(x=>counts[x.id]=cells.filter(d=>days[d]?.logged?.[x.id]).length);let w=ensureWeek(k),pl=plan(w.plan||[]),daily=cells.map(d=>({k:d,mark:dayMark(d),label:pk(d).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}),logged:days[d]?.logged||{},win:days[d]?.win||''}));return{k,span:span(k),counts,pl,daily,gear:w.gear,worked:w.worked,didnt:w.didnt,remember:w.remember,sentence:w.sentence,focus:w.focus,checkedInAt:w.checkedInAt}}
+  function track(c){let keys=[...new Set([...Object.keys(weeks),...Object.keys(days).map(k=>fk(mon(pk(k))))])].filter(k=>pk(k)<pk(c.w)).sort((a,b)=>pk(b)-pk(a));if(!keys.length)return `<p class="small">No past weeks yet. When this week rolls over, it will settle here.</p>`;return keys.map(k=>{let s=sum(k),ms=moves();return `<div class="card"><b>${e(s.span)}</b><div class="small mono">${k}${s.checkedInAt?' · reviewed':''}</div>${s.sentence||s.focus&&s.focus!='—'?`<p class="quote">${s.focus&&s.focus!='—'?`[${e(s.focus)}] `:''}${e(s.sentence)}</p>`:''}${s.pl.map(p=>`<div class="row"><span class="mono small" style="width:34px">${e(p.day)}</span><span class="${p.done?'strike':''}">${e(p.text||'Untitled')}</span></div>`).join('')}<div>${ms.map(m=>`<span class="chip">${e(m.label)} ×${s.counts[m.id]||0}</span>`).join('')}</div><div class="field"><div class="fl">Daily actions</div><div class="hint">tap a chip to revise a past day</div>${s.daily.map(d=>dayEditor(d,ms)).join('')}</div><div class="field"><div class="fl">Today in a line</div>${s.daily.map(lineEditor).join('')}</div>${s.worked?`<p><b>Worked:</b> ${e(s.worked)}</p>`:''}${s.didnt?`<p><b>Didn’t:</b> ${e(s.didnt)}</p>`:''}${s.remember?`<p><b>Remember:</b> ${e(s.remember)}</p>`:''}</div>`}).join('')}
 
   function getPlan(scope,c){if(scope=='template')return cfg.belongingPlan;if(scope=='next')return ensureWeek(c.next,cfg.belongingPlan).plan;return c.we.plan}
   function setPlan(scope,c,arr){if(scope=='template')cfg.belongingPlan=arr;else if(scope=='next')ensureWeek(c.next,cfg.belongingPlan).plan=arr;else c.we.plan=arr}
@@ -118,8 +127,10 @@
   A.onclick = ev => {
     let b=ev.target.closest('[data-mode],[data-act]'); if(!b)return;
     if(b.dataset.mode){mode=b.dataset.mode;render();return}
-    let c=cur(),p=b.dataset.act.split(':'),scope=p[1]||'week',pl;
+    let c=mode=='log'?cur(viewDate):cur(),p=b.dataset.act.split(':'),scope=p[1]||'week',pl;
+    if(p[0]=='date'){viewDate=p[1]=='today'?tk():fk(add(pk(c.t),+p[1]));render();return}
     if(p[0]=='mv'){let id=p[1],L=c.d.logged||{};L[id]?delete L[id]:L[id]={time:new Date().toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})};c.d.logged=L}
+    else if(p[0]=='histmv'){let d=ensureDay(p[1]),id=p[2],L=d.logged||{};L[id]?delete L[id]:L[id]={time:new Date().toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})};d.logged=L}
     else if(p[0]=='done'){pl=plan(getPlan(scope,c));pl[p[2]].done=!pl[p[2]].done;setPlan(scope,c,pl)}
     else if(p[0]=='tag'){pl=plan(getPlan(scope,c));let t=p.slice(3).join(':'),a=pl[p[2]].tags||[];pl[p[2]].tags=a.includes(t)?a.filter(x=>x!=t):[...a,t];setPlan(scope,c,pl)}
     else if(p[0]=='del'){pl=plan(getPlan(scope,c));pl.splice(+p[2],1);setPlan(scope,c,pl)}
@@ -132,9 +143,10 @@
   };
 
   A.oninput = ev => {
-    let c=cur(),x=ev.target;
+    let c=mode=='log'?cur(viewDate):cur(),x=ev.target;
     if(x.dataset.note){c.d.logged[x.dataset.note].note=x.value}
     else if('win' in x.dataset){c.d.win=x.value}
+    else if(x.dataset.winDay){ensureDay(x.dataset.winDay).win=x.value}
     else if(x.dataset.weekfield){let [k,field]=x.dataset.weekfield.split(':');ensureWeek(k)[field]=x.value}
     else if(x.dataset.day){let [scope,i]=x.dataset.day.split(':'),arr=getPlan(scope,c);arr[i].day=x.value}
     else if(x.dataset.text){let [scope,i]=x.dataset.text.split(':'),arr=getPlan(scope,c);arr[i].text=x.value}
@@ -143,7 +155,8 @@
   };
 
   A.onchange = ev => {
-    let c=cur(),x=ev.target;
+    let c=mode=='log'?cur(viewDate):cur(),x=ev.target;
+    if(x.dataset.viewdate){viewDate=x.value||tk();render();return}
     if(x.dataset.weekfield){let [k,field]=x.dataset.weekfield.split(':');ensureWeek(k)[field]=x.value;save();return}
     if(ev.target.id=='imp'){let f=ev.target.files[0];if(!f)return;let r=new FileReader;r.onload=()=>{try{let b=JSON.parse(r.result);if(b._app!='days')return alert('That does not look like a Days backup.');cfg=norm(b.config);days=b.days||{};weeks=b.weeks||{};render()}catch{alert('Could not read that file.')}};r.readAsText(f)}
   };
