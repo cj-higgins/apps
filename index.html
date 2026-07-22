@@ -5,20 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Selected work by CJ Higgins in AI evaluation, quantitative research, workflow design, and technical communication.">
   <meta name="theme-color" content="#f4f0e7">
+  <meta http-equiv="refresh" content="0; url=./portfolio/">
+  <link rel="canonical" href="https://cj-higgins.github.io/apps/portfolio/">
   <title>CJ Higgins — AI Evaluation & Research</title>
-  <style>
-    body{margin:0;background:#f4f0e7;color:#202421;font:16px system-ui,sans-serif;display:grid;min-height:100vh;place-items:center}
-    a{color:#205d50}noscript, #status{padding:28px;text-align:center}
-  </style>
+  <style>body{margin:0;background:#f4f0e7;color:#202421;font:17px Georgia,serif;display:grid;min-height:100vh;place-items:center}a{color:#205d50;text-underline-offset:3px}</style>
+  <script>window.location.replace('./portfolio/');</script>
 </head>
-<body>
-  <p id="status">Loading portfolio…</p>
-  <noscript><p>JavaScript is required for this landing page. <a href="./portfolio/">Open the portfolio directly.</a></p></noscript>
-  <script>
-    fetch('./portfolio/index.html')
-      .then(response=>{if(!response.ok)throw new Error('Portfolio unavailable');return response.text()})
-      .then(html=>{document.open();document.write(html);document.close();history.replaceState(null,'','./')})
-      .catch(()=>{document.getElementById('status').innerHTML='The portfolio could not load. <a href="./portfolio/">Open it directly.</a>'});
-  </script>
-</body>
+<body><p><a href="./portfolio/">Open CJ Higgins’s portfolio</a></p></body>
 </html>
