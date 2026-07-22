@@ -3,16 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CJ Apps</title>
+  <meta name="description" content="Selected work by CJ Higgins in AI evaluation, quantitative research, workflow design, and technical communication.">
+  <meta name="theme-color" content="#f4f0e7">
+  <title>CJ Higgins — AI Evaluation & Research</title>
   <style>
-    body{margin:0;background:#E9E5DC;color:#23211C;font:18px Georgia,serif;display:grid;min-height:100vh;place-items:center}main{max-width:560px;padding:32px}a{color:#23211C;text-decoration-thickness:1px}p{color:#6C685E;line-height:1.5}
+    body{margin:0;background:#f4f0e7;color:#202421;font:16px system-ui,sans-serif;display:grid;min-height:100vh;place-items:center}
+    a{color:#205d50}noscript, #status{padding:28px;text-align:center}
   </style>
 </head>
 <body>
-  <main>
-    <h1>CJ Apps</h1>
-    <p><a href="./days/?v=3e781bb">Days</a></p>
-    <p>Use this cache-busted link if Safari is still holding the old blank version.</p>
-  </main>
+  <p id="status">Loading portfolio…</p>
+  <noscript><p>JavaScript is required for this landing page. <a href="./portfolio/">Open the portfolio directly.</a></p></noscript>
+  <script>
+    fetch('./portfolio/index.html')
+      .then(response=>{if(!response.ok)throw new Error('Portfolio unavailable');return response.text()})
+      .then(html=>{document.open();document.write(html);document.close();history.replaceState(null,'','./')})
+      .catch(()=>{document.getElementById('status').innerHTML='The portfolio could not load. <a href="./portfolio/">Open it directly.</a>'});
+  </script>
 </body>
 </html>
